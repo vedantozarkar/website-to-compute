@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Clothing Color Suggestion App</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f6f6f6; margin: 0; padding: 20px; }
+    h1 { color: #4a90e2; }
+    .container { background: #fff; border-radius: 10px; padding: 24px; max-width: 400px; margin: 40px auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1);}
+    #preview { display:block; width:100%; max-width: 200px; margin:16px auto 0; border-radius:8px; }
+    #colorBox { width: 48px; height: 48px; margin: 16px auto; border-radius: 50%; border: 2px solid #ccc; }
+    .palette { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 12px; }
+    .swatch { width: 40px; height: 40px; border-radius: 50%; margin: 6px; border: 2px solid #ccc;}
+    .tip { font-size: 0.93em; color: #333; margin-top: 16px;}
+    .footer { text-align: center; margin-top: 24px; color: #aaa; font-size: 0.9em;}
+    input[type="file"] { margin: 8px 0; }
+    button { background: #4a90e2; color: #fff; border: none; border-radius:5px; padding: 10px 20px; font-size: 1em; cursor: pointer;}
+    button:hover { background: #357ab8;}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Clothing Color Suggestion AI</h1>
+    <p>Upload your selfie to get clothing color suggestions based on your skin tone!</p>
+    <input type="file" accept="image/*" id="fileInput" />
+    <img id="preview" src="" alt="Preview" style="display:none;" />
+    <div id="colorBox" style="display:none;"></div>
+    <div id="result" style="margin-top:18px;"></div>
+    <div id="paletteContainer"></div>
+    <div class="footer">Made for you by AI, free to use & share!</div>
+  </div>
+  <!-- Color Thief JS library from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.2/color-thief.umd.js"></script>
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const preview = document.getElementById('preview');
+    const colorBox = document.getElementById('colorBox');
+    const result = document.getElementById('result');
+    const paletteContainer = document.getElementById('paletteContainer');
+    const colorPalettes = {
+      "warm": {
+        label: "Warm Skin Tone",
+        tips: "Earthy tones like brown, orange, gold, olive green, coral, and warm reds look fantastic on you.",
+        colors: ["#A0522D", "#FF7F50", "#FFD700", "#808000", "#DC143C", "#FF8C00"]
+      },
+      "cool": {
+        label: "Cool Skin Tone",
+        tips: "Jewel tones like sapphire, emerald, lavender, pink, and cool blues suit you best.",
+        colors: ["#4682B4", "#6A5ACD", "#00CED1", "#8A2BE2", "#FF69B4", "#228B22"]
+      },
+      "neutral": {
+        label: "Neutral Skin Tone",
+        tips: "You can wear most colors! Try jade green, light peach, dusty pink, and navy blue.",
+        colors: ["#E9967A", "#3CB371", "#FFDAB9", "#483D8B", "#F0E68C", "#D8BFD8"]
+      }
+    };
+
+    function rgbToHex(rgb) {
+      return "#" + rgb.map(x => x.toString(16).padStart(2, "0")).join("");
+    }
+
+    function getSkinType([r, g, b]) {
+      // Simple logic: warm if red/yellow dominate, cool if blue/pink, else neutral
+      if (r > g && r > b && (g > b || r - g > 30)) return "warm";
+      if (b > r && b > g) return "cool";
+      if (r > 210 && g > 170 && b > 120) return "warm"; // for some yellowish skin
+      if (g > r && g > b) return "neutral";
+      return "neutral";
+    }
+
+    fileInput.addEventListener('change', function() {
+      const file = fileInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        preview.src = e.target.result;
+        preview.style.display = "block";
+        preview.onload = function() {
+          const colorThief = new ColorThief();
+          let dominantColor;
+          try {
+            dominantColor = colorThief.getColor(preview);
+          } catch (err) {
+            result.textContent = "Try another photo for better results.";
+            return;
+          }
+          const hex = rgbToHex(dominantColor);
+          colorBox.style.display = "block";
+          colorBox.style.background = hex;
+          result.innerHTML = `<b>Your skin tone color:</b> <span style="color:${hex};">${hex}</span>`;
+
+          // Suggest palette
+          const skinType = getSkinType(dominantColor);
+          const suggestion = colorPalettes[skinType];
+          paletteContainer.innerHTML = `
+            <div class="tip"><b>${suggestion.label}:</b> ${suggestion.tips}</div>
+            <div class="palette">${suggestion.colors.map(c=>`<span class="swatch" style="background:${c}"></span>`).join('')}</div>
+          `;
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  </script>
+</body>
+</html>
